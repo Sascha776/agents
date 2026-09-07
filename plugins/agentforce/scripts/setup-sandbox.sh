@@ -182,115 +182,19 @@ finish() {
 # ──────────────────────────────────────────────────────────────────────────
 # STAGES: author this section. One stage() per step the human takes.
 # Replace the example below. Set TOTAL_STAGES to match the stages you write.
+#
+# The heavy lifting moved into lib/lab-setup.sh (a deep module). This section
+# is now a thin shell: source the module and run it. The wizard library above
+# stays untouched; the module drives stage/banner/ask/confirm/pause/write_env/
+# finish from the fixed library. TOTAL_STAGES is set by the module.
+#
+# The BASH_SOURCE guard makes this file a *library* when sourced (tests do
+# this to get the wizard lib + module in one scope) and a *script* when
+# executed (the normal human path).
 # ──────────────────────────────────────────────────────────────────────────
 
-TOTAL_STAGES=6
-
-banner "Agentforce test-lab setup"
-
-# ── Prerequisite: toolchain ────────────────────────────────────────────────
-if ! command -v sf >/dev/null 2>&1; then
-  warn "The Salesforce CLI (sf) is not installed."
-  say "Install it, then re-run this wizard:"
-  say "  npm install -g @salesforce/cli"
-  exit 1
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  _LAB_MODULE="$(dirname "${BASH_SOURCE[0]}")/lib/lab-setup.sh"
+  source "$_LAB_MODULE"
+  lab_setup_run "$@"
 fi
-if ! command -v python3 >/dev/null 2>&1; then
-  warn "python3 is required (used to parse CLI output). Install it and re-run."
-  exit 1
-fi
-
-# Helper: in-place sed that works on both GNU and BSD (macOS).
-_edit() { local f="$1"; if sed --version >/dev/null 2>&1; then sed -i "$2" "$f"; else sed -i '' "$2" "$f"; fi; }
-
-# Helper: JSON helper that tolerates control characters in CLI output.
-_jsonval() {
-  python3 -c "import json,sys,re; d=json.loads(re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]','',sys.stdin.read())); print(d.get('result',{}).get(sys.argv[1]))" "$1"
-}
-
-# ── Stage 1: log in to the org ─────────────────────────────────────────────
-stage "Log in to the org"
-say "We'll authenticate to your Salesforce org. A browser window will open."
-ask ORG_ALIAS "Org alias (later commands use this):"
-ask ORG_URL "Org URL [https://login.salesforce.com]"
-ORG_URL="${ORG_URL:-https://login.salesforce.com}"
-say "Running the CLI web login now. Complete it in the browser, then return."
-open_url "${ORG_URL%%/}"
-sf org login web --alias "$ORG_ALIAS" --instance-url "$ORG_URL" --set-default
-pause "Logged in? (browser should say authorized — then press Enter)"
-SF_USERNAME=$(sf org display --target-org "$ORG_ALIAS" --json | _jsonval "username")
-note "Detected username: $SF_USERNAME"
-write_env ORG_ALIAS "$ORG_ALIAS"
-write_env ORG_URL "$ORG_URL"
-write_env SF_USERNAME "$SF_USERNAME"
-
-# ── Stage 2: verify it's a sandbox ─────────────────────────────────────────
-stage "Verify sandbox"
-say "Security tests must target a sandbox. Checking org type."
-SANDBOX_JSON=$(sf data query -q "SELECT IsSandbox, Name, OrganizationType FROM Organization LIMIT 1" -o "$ORG_ALIAS" --json || true)
-IS_SANDBOX=$(printf '%s' "$SANDBOX_JSON" | python3 -c "import json,sys,re; d=json.loads(re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]','',sys.stdin.read())); r=d.get('result',{}).get('records',[{}])[0]; print(r.get('IsSandbox', False))" 2>/dev/null || echo false)
-if [ "$IS_SANDBOX" = "true" ]; then
-  note "✓ Sandbox confirmed."
-else
-  warn "This does NOT look like a sandbox. Agentforce security testing is sandbox-only."
-  confirm "Continue with a production org anyway?" || { say "Stopping — re-run with a sandbox."; exit 1; }
-fi
-
-# ── Stage 3: scaffold the agent project ────────────────────────────────────
-stage "Scaffold the agent project"
-say "Creating an SFDX project from the CLI's bundled 'agent' template"
-say "(Local_Info_Agent sample: weather, events, resort hours)."
-ask AGENT_PROJECT "Project directory name [AgentLab]"
-AGENT_PROJECT="${AGENT_PROJECT:-AgentLab}"
-if [ -d "$AGENT_PROJECT" ]; then
-  warn "Directory '$AGENT_PROJECT' already exists — skipping scaffold."
-else
-  sf template generate project --name "$AGENT_PROJECT" --template agent --default-package-dir force-app
-fi
-write_env AGENT_PROJECT "$AGENT_PROJECT"
-AGENT_BUNDLE="Local_Info_Agent"
-
-# ── Stage 4: set the default agent user ────────────────────────────────────
-stage "Set the default agent user"
-say "The template ships with a placeholder default_agent_user; replace it"
-say "with the username from stage 1 so the agent compiles."
-AGENT_FILE=$(find "$AGENT_PROJECT" -name "*.agent" -path "*aiAuthoringBundles*" | head -1)
-AGENT_FILE="${AGENT_FILE:-$AGENT_PROJECT/force-app/main/default/aiAuthoringBundles/$AGENT_BUNDLE/$AGENT_BUNDLE.agent}"
-note "File: $AGENT_FILE"
-if [ -f "$AGENT_FILE" ]; then
-  CURRENT=$(grep -oE 'default_agent_user: ".*?"' "$AGENT_FILE" | head -1 | sed 's/.*: "//; s/"$//')
-  note "Current placeholder: ${CURRENT:-<none>}"
-  confirm "Replace it with '$SF_USERNAME'?" && {
-    _edit "$AGENT_FILE" "s|default_agent_user: \"[^\"]*\"|default_agent_user: \"$SF_USERNAME\"|"
-    grep -q "default_agent_user: \"$SF_USERNAME\"" "$AGENT_FILE" && note "✓ Updated." || warn "Auto-edit failed — fix the line manually."
-  }
-else
-  warn "Agent file not found; edit default_agent_user manually after scaffolding."
-fi
-
-# ── Stage 5: deploy metadata to the org (confirm gate) ─────────────────────
-stage "Deploy metadata"
-say "Deploying the agent bundle, flow, Apex, prompt template, and permission"
-say "sets so live action targets (apex://, flow://, prompt://) exist."
-confirm "Push these metadata components to '$ORG_ALIAS' now?" || { say "Skipped — live actions won't resolve until deployed."; pause; skip_deploy=1; }
-if [ -z "${skip_deploy:-}" ]; then
-  ( cd "$AGENT_PROJECT" && sf project deploy start --target-org "$ORG_ALIAS" -w 5 )
-fi
-
-# ── Stage 6: smoke test the agent ──────────────────────────────────────────
-stage "Smoke test (simulated actions)"
-say "Running one preview session against the local .agent file, with"
-say "actions simulated so nothing real executes."
-( cd "$AGENT_PROJECT" &&
-  SESSION_ID=$(sf agent preview start --json --authoring-bundle "$AGENT_BUNDLE" --simulate-actions --target-org "$ORG_ALIAS" 2>/dev/null | _jsonval "sessionId") &&
-  echo "  Preview session: $SESSION_ID" &&
-  sf agent preview send --json --session-id "$SESSION_ID" --authoring-bundle "$AGENT_BUNDLE" --utterance "What's the weather at the resort today?" --target-org "$ORG_ALIAS" 2>/dev/null | python3 -c "
-import json,sys,re
-d=json.loads(re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]','',sys.stdin.read()))
-m=d.get('result',{}).get('messages',[])
-print('  Agent reply: '+((m[-1].get('message','') if m else '')[:200]))
-" &&
-  sf agent preview end --json --session-id "$SESSION_ID" --authoring-bundle "$AGENT_BUNDLE" --target-org "$ORG_ALIAS" >/dev/null 2>&1 ) \
-  || warn "Smoke test failed — see the trace at .sfdx/agents/ for diagnosis."
-
-finish
