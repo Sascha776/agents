@@ -352,3 +352,39 @@ subagent order_mgmt:
 subagent order_mgmt:
   description: "Handle order queries, order status, tracking, shipping, delivery"
 ```
+
+## Voice Agent Testing
+
+> These are heuristic checks on the **text-preview transcript** — a proxy for
+> voice UX, not native voice testing. The CLI evaluates the agent over text;
+> there is no audio/TTS/STT validation. Final voice QA is the Agent Builder
+> voice preview or a live channel.
+
+When the `.agent` file includes `modality voice:`, add these voice-readiness
+checks to the verdict beside standard routing/grounding/safety analysis, and
+label them as text-proxy checks:
+
+1. **Response length** — voice responses should be 1–2 sentences; flag 3+ as a
+   potential voice UX issue.
+2. **No visual formatting** — flag lists, links, tables, markdown, or other
+   formatting that does not render in speech.
+3. **Confirmation patterns** — for actions that modify data, verify the agent
+   repeats back key information (account numbers, dates, amounts) before
+   executing.
+4. **Speak-up behavior** — if `speak_up_config` is set, note that silent-user
+   handling is configured. This is a static config check only — silent-user
+   behavior is not exercisable via text preview.
+5. **Connection blocks** — verify `connection customer_web_client:` (ECv2) with
+   `adaptive_response_allowed: True` and a `VoiceCallId` linked variable bound
+   to `@VoiceCall.Id`. `connection messaging:` is additive (present only when
+   the agent escalates to a human). There is no `connection voice:` surface
+   type — flag it if present.
+6. **Latency risk (static + trace)** — from the trace, flag actions on the
+   response path that are slow (SOQL, external HTTP, retrieval) with no
+   ack/filler phrase in the preceding turn, and bulky retrieval returned raw to
+   the planner. Heuristic latency flags only; see `/agentforce-generate`
+   `../agentforce-generate/references/voice-latency-heuristics.md` for the
+   pattern catalog.
+7. **Spoken-form numbers** — if a response surfaces prices, phone numbers, or
+   IDs as raw digits or symbols (`$19.99`, `+14155551212`), flag a missing
+   spoken-form rule (TTS garble risk).

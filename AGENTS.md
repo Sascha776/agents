@@ -1,6 +1,6 @@
 # claude-agents — multi-harness agentic plugin marketplace
 
-Production-ready agentic-workflow building blocks: **94 plugins** (92 local + 2 external), **202 agents**, **183 skills**, **105 commands**. Native source-of-truth for Claude Code; also consumed by OpenAI Codex CLI, Cursor, OpenCode, and the Google Antigravity CLI (`agy`) from a single Markdown source.
+Production-ready agentic-workflow building blocks: **95 plugins** (93 local + 2 external), **202 agents**, **184 skills**, **105 commands**. Native source-of-truth for Claude Code; also consumed by OpenAI Codex CLI, Cursor, OpenCode, and the Google Antigravity CLI (`agy`) from a single Markdown source.
 
 This file is the canonical context file. Codex / Cursor / OpenCode / Antigravity CLI read it directly. Claude Code reads it via `CLAUDE.md`, a symlink to this file.
 
@@ -10,7 +10,7 @@ This file is the canonical context file. Codex / Cursor / OpenCode / Antigravity
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — top-level architectural overview (adapter framework, source-of-truth invariant, capability matrix summary)
 - **[docs/architecture.md](docs/architecture.md)** — detailed design principles
-- **[docs/plugins.md](docs/plugins.md)** — full plugin catalog (94 plugins by category)
+- **[docs/plugins.md](docs/plugins.md)** — full plugin catalog (95 plugins by category)
 - **[docs/agents.md](docs/agents.md)** — agent reference (202 agents, model tiers)
 - **[docs/agent-skills.md](docs/agent-skills.md)** — skill reference (progressive disclosure model)
 - **[docs/usage.md](docs/usage.md)** — commands, workflows, examples
@@ -53,7 +53,7 @@ The small per-harness registries are **committed** so each harness installs nati
 
 ## Skills (cross-harness)
 
-183 skills under `plugins/*/skills/<n>/SKILL.md` — discoverable by every harness:
+184 skills under `plugins/*/skills/<n>/SKILL.md` — discoverable by every harness:
 
 - **Claude Code**: auto-discovery via Anthropic's SKILL.md spec
 - **Codex CLI**: mirrored to `.codex/skills/<plugin>__<skill>/` (8 KB body cap; detail in `references/details.md`)
@@ -74,3 +74,17 @@ The small per-harness registries are **committed** so each harness installs nati
 ## Why this file is short
 
 Per OpenAI's harness-engineering practice: this file is a **map**, not an encyclopedia. Procedural detail lives in skills (loaded on demand by agents). Reference material lives in `docs/` (loaded when an agent navigates). A single bloated AGENTS.md crowds out the task, rots quickly, and is hard to verify mechanically. Keep it lean; push detail elsewhere.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as GitHub issues in this repo (`gh` CLI; PRs are not a triage surface). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles with default label strings (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root, created lazily by `/domain-modeling`. See `docs/agents/domain.md`.

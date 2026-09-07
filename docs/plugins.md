@@ -1,6 +1,6 @@
 # Complete Plugin Reference
 
-Browse all **94 marketplace plugins** organized by category: 92 local plugins plus 2 externally hosted `git-subdir` entries (`pensyve` and `hol-guard`).
+Browse all **95 marketplace plugins** organized by category: 93 local plugins plus 2 externally hosted `git-subdir` entries (`pensyve` and `hol-guard`).
 
 ## Quick Start - Essential Plugins
 
@@ -167,7 +167,7 @@ Next.js, React + Vite, and Node.js project setup with pnpm and TypeScript best p
 | **file-conversion**       | Convert files across 1,000+ format pairs   | `/plugin install file-conversion`       |
 | **team-collaboration**    | Team workflows and standup automation      | `/plugin install team-collaboration`    |
 
-### 🤖 AI & ML (6 plugins)
+### 🤖 AI & ML (7 plugins)
 
 | Plugin                   | Description                         | Install                                |
 | ------------------------ | ----------------------------------- | -------------------------------------- |
@@ -177,6 +177,7 @@ Next.js, React + Vite, and Node.js project setup with pnpm and TypeScript best p
 | **machine-learning-ops** | ML training pipelines and MLOps     | `/plugin install machine-learning-ops` |
 | **llm-finetuning**       | Eval-gated LLM fine-tuning lifecycle: dataset prep, LoRA/QLoRA training, and promotion gating | `/plugin install llm-finetuning`       |
 | **dgx-spark-ops**        | NVIDIA DGX Spark (GB10) environment ops: aarch64/CUDA-13 stack setup, training preflights, unified-memory/thermal management | `/plugin install dgx-spark-ops`        |
+| **agentforce**           | Automated testing for Agentforce agents: smoke, batch, and OWASP security suites | `/plugin install agentforce`           |
 
 ### 🧠 Memory (1 external plugin)
 
@@ -365,7 +366,7 @@ plugins/python-development/
 /plugin marketplace add wshobson/agents
 ```
 
-This makes all 94 marketplace plugins available for installation, but **does not load any agents or tools** into your context.
+This makes all 95 marketplace plugins available for installation, but **does not load any agents or tools** into your context.
 
 ### Step 2: Install Specific Plugins
 
@@ -419,7 +420,7 @@ Selectors, install paths, and gotchas: [harnesses.md](./harnesses.md#skills-only
 
 ## See Also
 
-- [Agent Skills](./agent-skills.md) - 183 specialized skills across plugins
+- [Agent Skills](./agent-skills.md) - 184 specialized skills across plugins
 - [Agent Reference](./agents.md) - Complete agent catalog
 - [Usage Guide](./usage.md) - Commands and workflows
 - [Architecture](./architecture.md) - Design principles
