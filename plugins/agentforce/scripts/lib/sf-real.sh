@@ -36,7 +36,7 @@ sf_is_sandbox() {
   local alias="$1"
   sf data query -q "SELECT IsSandbox, Name, OrganizationType FROM Organization LIMIT 1" \
     --target-org "$alias" --json 2>/dev/null \
-    | python3 -c "import json,sys,re; d=json.loads(re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]','',sys.stdin.read())); print(d.get('result',{}).get('records',[{}])[0].get('IsSandbox', False))" 2>/dev/null || echo false
+    | _lab_json_record_field "IsSandbox" || echo false
 }
 
 sf_generate() {
@@ -61,14 +61,7 @@ sf_smoke() {
 
   send_json=$(sf agent preview send --json --session-id "$session_id" \
     --authoring-bundle "$bundle" --utterance "$utterance" --target-org "$alias" 2>/dev/null)
-  final_message=$(
-    printf '%s' "$send_json" | python3 -c "
-import json,sys,re
-d=json.loads(re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]','',sys.stdin.read()))
-m=d.get('result',{}).get('messages',[])
-print((m[-1].get('message','') if m else ''))
-"
-  )
+  final_message=$(printf '%s' "$send_json" | _lab_json_last_message)
 
   # Always end the session, even if send failed or produced no reply.
   sf agent preview end --json --session-id "$session_id" \

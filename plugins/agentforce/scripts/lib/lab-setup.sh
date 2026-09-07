@@ -22,8 +22,8 @@
 # 1 = fatal (toolchain missing, login/display/query/scaffold/deploy failed).
 # ──────────────────────────────────────────────────────────────────────────
 
-# Adapter selection is read at source time so tests can set LAB_SF_ADAPTER
-# before sourcing this file. Adapter files live next to this module.
+# Adapters live next to this module. The adapter is chosen per lab_setup_run
+# call from LAB_SF_ADAPTER (default "real"); tests set it before running.
 _LAB_ADAPTER_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 # in-place sed that works on both GNU and BSD (macOS).
@@ -32,11 +32,43 @@ _lab_edit() {
   if sed --version >/dev/null 2>&1; then sed -i "$expr" "$file"; else sed -i '' "$expr" "$file"; fi
 }
 
+# The three helpers below share one contract: read a (dirty) sf JSON blob on
+# stdin, strip control characters, extract a single value, and print it — or
+# print nothing on missing/malformed input, quietly, without a traceback.
+
 # _lab_json KEY: read one field out of a JSON blob on stdin, stripping the
-# control characters (\x00-\x1f) Salesforce emits. Prints the value (or empty).
+# control characters (\x00-\x1f) Salesforce emits. Reads from .result.<KEY>.
+# Used for scalar fields: username, sessionId.
 _lab_json() {
   local key="$1"
-  python3 -c "import json,sys,re; d=json.loads(re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]','',sys.stdin.read())); v=d.get('result',{}).get('$key'); print('' if v is None else v)"
+  python3 -c "import json,sys,re
+try:
+  d=json.loads(re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]','',sys.stdin.read()))
+  v=d.get('result',{}).get('$key'); print('' if v is None else v)
+except Exception: pass"
+}
+
+# _lab_json_record_field FIELD: like _lab_json but reads .result.records[0].<FIELD>
+# (the Organization SOQL shape). Booleans print as lowercase true/false.
+_lab_json_record_field() {
+  local field="$1"
+  python3 -c "import json,sys,re
+try:
+  d=json.loads(re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]','',sys.stdin.read()))
+  r=d.get('result',{}).get('records',[{}]); v=r[0].get('$field') if r else None
+  print('' if v is None else ('true' if v is True else ('false' if v is False else v)))
+except Exception: pass"
+}
+
+# _lab_json_last_message: print .result.messages[-1].message from a smoke
+# session JSON blob on stdin. Prints nothing when there are no messages.
+_lab_json_last_message() {
+  python3 -c "import json,sys,re
+try:
+  d=json.loads(re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]','',sys.stdin.read()))
+  m=d.get('result',{}).get('messages',[]); v=(m[-1].get('message') if m else None)
+  print('' if v is None else v)
+except Exception: pass"
 }
 
 # ── Stage 1: log in to the org ─────────────────────────────────────────────
@@ -52,6 +84,10 @@ _lab_stage_login() {
   sf_login "$ORG_ALIAS" "$ORG_URL" || return 1
   pause "Logged in? (browser should say authorized — then press Enter)"
   SF_USERNAME=$(sf_username "$ORG_ALIAS") || return 1
+  if [ -z "$SF_USERNAME" ]; then
+    warn "Could not determine the org username — the login may not have completed."
+    return 1
+  fi
   note "Detected username: $SF_USERNAME"
   write_env ORG_ALIAS "$ORG_ALIAS"
   write_env ORG_URL "$ORG_URL"
