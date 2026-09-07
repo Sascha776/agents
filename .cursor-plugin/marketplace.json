@@ -6,8 +6,8 @@
     "url": "https://github.com/wshobson"
   },
   "metadata": {
-    "description": "Production-ready workflow orchestration with 92 marketplace plugins, 202 local specialized agents, and 181 local skills - optimized for granular installation and minimal token usage",
-    "version": "1.7.1"
+    "description": "Production-ready workflow orchestration with 95 marketplace plugins (93 local + 2 external), 202 local specialized agents, and 184 local skills - optimized for granular installation and minimal token usage",
+    "version": "1.8.0"
   },
   "plugins": [
     {
@@ -40,6 +40,17 @@
       "author": {
         "name": "Seth Hobson",
         "email": "seth@major7apps.com"
+      },
+      "license": "MIT"
+    },
+    {
+      "name": "agentforce",
+      "source": "./plugins/agentforce",
+      "version": "0.8.0",
+      "description": "Automated testing for Agentforce agents with smoke tests, batch execution, and iterative fix loops",
+      "author": {
+        "name": "Salesforce",
+        "email": ""
       },
       "license": "MIT"
     },
