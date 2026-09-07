@@ -1,0 +1,9 @@
+{
+  "name": "agentforce",
+  "version": "0.8.0",
+  "description": "Automated testing for Agentforce agents with smoke tests, batch execution, and iterative fix loops",
+  "author": {
+    "name": "Salesforce"
+  },
+  "license": "MIT"
+}

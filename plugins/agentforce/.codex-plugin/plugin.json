@@ -1,0 +1,15 @@
+{
+  "name": "agentforce",
+  "version": "0.8.0",
+  "description": "Automated testing for Agentforce agents with smoke tests, batch execution, and iterative fix loops",
+  "skills": "./skills/",
+  "author": {
+    "name": "Salesforce"
+  },
+  "license": "MIT",
+  "interface": {
+    "displayName": "Agentforce",
+    "shortDescription": "Automated testing for Agentforce agents with smoke tests, batch execution, and iterative fix loops",
+    "category": "Coding"
+  }
+}

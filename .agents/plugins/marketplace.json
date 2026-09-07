@@ -1196,6 +1196,19 @@
         "authentication": "ON_USE"
       },
       "category": "Coding"
+    },
+    {
+      "name": "agentforce",
+      "description": "Automated testing for Agentforce agents with smoke tests, batch execution, and iterative fix loops",
+      "source": {
+        "source": "local",
+        "path": "./plugins/agentforce"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_USE"
+      },
+      "category": "Coding"
     }
   ]
 }
